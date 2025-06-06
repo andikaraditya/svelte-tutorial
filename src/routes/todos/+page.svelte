@@ -6,23 +6,54 @@
 	import { onMount } from 'svelte';
 
 	let todos: Todo[] = [];
-	let isLoading = true;
+	let isLoading = false;
 	let isEnd = false;
 	let skip = 0;
+	const limit = 10;
 
-	onMount(async () => {
-		const [req, err] = await invoke(
-			getListTodos({
-				limit: 10,
-				skip
-			})
-		);
-		if (err) {
+	let sentinel: HTMLDivElement;
+
+	async function loadTodos() {
+		if (isLoading || isEnd) return;
+
+		isLoading = true;
+		const [req, err] = await invoke(getListTodos({ limit, skip }));
+		isLoading = false;
+
+		if (err || !req) {
+			console.error(err);
 			return;
 		}
 
-		todos = [...todos, ...(req?.todos || [])];
-		isLoading = false;
+		if (todos.length == req.total) {
+			isEnd = true;
+		}
+
+		todos = [...todos, ...req.todos];
+		skip += limit;
+	}
+
+	onMount(() => {
+		loadTodos();
+
+		const observer = new IntersectionObserver(
+			async ([entry]) => {
+				if (entry.isIntersecting) {
+					await loadTodos();
+				}
+			},
+			{
+				rootMargin: '100px'
+			}
+		);
+
+		if (sentinel) {
+			observer.observe(sentinel);
+		}
+
+		return () => {
+			if (sentinel) observer.unobserve(sentinel);
+		};
 	});
 </script>
 
@@ -32,6 +63,7 @@
 		Add Todo
 	</button>
 </div>
+
 <div class="mx-auto max-w-xl space-y-4">
 	{#each todos as todo}
 		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow transition hover:shadow-lg">
@@ -48,6 +80,7 @@
 			<p><span class="font-semibold text-gray-700">User ID:</span> {todo.userId}</p>
 		</div>
 	{/each}
+
 	{#if isLoading}
 		<div class="mt-4 mb-10 flex flex-col items-center justify-center">
 			<svg width="70" height="70" viewBox="0 0 24 24" fill="blue" xmlns="http://www.w3.org/2000/svg"
@@ -66,7 +99,12 @@
 					class="spinner_P7sC"
 				/></svg
 			>
-			<p class="text-2xl">Loading Todos</p>
+			<p class="text-2xl">Loading Todos...</p>
 		</div>
+	{:else if isEnd}
+		<p class="mt-6 mb-10 text-center text-gray-500">You’ve reached the end.</p>
 	{/if}
+
+	<!-- Sentinel for IntersectionObserver -->
+	<div bind:this={sentinel} class="h-1"></div>
 </div>
