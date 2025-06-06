@@ -3,6 +3,7 @@ interface FetchRequest {
 	method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'; // restrict to HTTP methods
 	body?: object;
 	header?: Record<string, string>;
+	queryParams?: Record<string, string>;
 }
 
 interface FetchResponse {
@@ -11,7 +12,12 @@ interface FetchResponse {
 }
 
 export async function fetchData(req: FetchRequest): Promise<FetchResponse> {
-	const response = await fetch(req.url, {
+	// Convert object to query string
+	let queryString = '';
+	if (req.queryParams) {
+		queryString = '?' + new URLSearchParams(req.queryParams).toString();
+	}
+	const response = await fetch(req.url + queryString, {
 		method: req.method,
 		headers: {
 			'Content-Type': 'application/json',

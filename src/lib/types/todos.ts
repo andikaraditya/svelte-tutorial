@@ -4,3 +4,10 @@ export interface Todo {
 	completed: boolean;
 	userId: number;
 }
+
+export interface ListTodo {
+	todos: Todo[];
+	skip: number;
+	limit: number;
+	total: number;
+}

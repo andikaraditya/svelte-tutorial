@@ -1,28 +1,28 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { fetchData } from '$lib/fetch';
 	import { invoke } from '$lib/invoke';
+	import { getListTodos } from '$lib/todos';
 	import type { Todo } from '$lib/types/todos';
 	import { onMount } from 'svelte';
 
 	let todos: Todo[] = [];
 	let isLoading = true;
+	let isEnd = false;
+	let skip = 0;
 
 	onMount(async () => {
 		const [req, err] = await invoke(
-			fetchData({
-				url: 'https://dummyjson.com/todos',
-				method: 'GET'
+			getListTodos({
+				limit: 10,
+				skip
 			})
 		);
 		if (err) {
 			return;
 		}
 
-		if (req?.statusCode == 200) {
-			todos = req.body.todos;
-			isLoading = false;
-		}
+		todos = [...todos, ...(req?.todos || [])];
+		isLoading = false;
 	});
 </script>
 
